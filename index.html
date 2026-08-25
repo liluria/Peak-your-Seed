@@ -1,0 +1,956 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PEAK — Seed Picker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --stone-950:#12151a;
+    --stone-900:#191d22;
+    --stone-850:#1e2329;
+    --stone-800:#242a31;
+    --stone-700:#333b43;
+    --stone-600:#4a545e;
+    --fog-100:#eef1f2;
+    --fog-300:#c3cbd0;
+    --fog-500:#8b969e;
+
+    --route:#ff6a2c;
+    --route-dim:#ff6a2c33;
+
+    --camp1:#6fae7a;   /* base camp / easy */
+    --camp1-dim:#6fae7a22;
+    --camp2:#d9a441;   /* switchback / medium */
+    --camp2-dim:#d9a44122;
+    --camp3:#c1503f;   /* summit push / hard */
+    --camp3-dim:#c1503f22;
+
+    --shore:#5aa7c9;
+    --tropics:#5fae62;
+    --roots:#8a6a45;
+    --alpine:#a9c4d6;
+    --mesa:#c98a4b;
+    --other:#8f7fb0;
+
+    --display: 'Big Shoulders Display', sans-serif;
+    --body: 'Inter', sans-serif;
+    --mono: 'JetBrains Mono', monospace;
+  }
+
+  *{box-sizing:border-box; margin:0; padding:0;}
+
+  html{scroll-behavior:smooth;}
+
+  body{
+    background:var(--stone-950);
+    color:var(--fog-100);
+    font-family:var(--body);
+    line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+  }
+
+  /* subtle topographic texture */
+  body::before{
+    content:"";
+    position:fixed; inset:0;
+    pointer-events:none;
+    opacity:0.05;
+    background-image:
+      repeating-radial-gradient(circle at 15% 20%, transparent 0, transparent 40px, var(--fog-300) 41px, transparent 42px),
+      repeating-radial-gradient(circle at 85% 70%, transparent 0, transparent 55px, var(--fog-300) 56px, transparent 57px);
+    z-index:0;
+  }
+
+  .wrap{
+    max-width:980px;
+    margin:0 auto;
+    padding:0 24px 120px;
+    position:relative;
+    z-index:1;
+  }
+
+  /* ---------- HERO ---------- */
+  header.hero{
+    padding:88px 24px 24px;
+    max-width:980px;
+    margin:0 auto;
+    position:relative;
+  }
+
+  .eyebrow{
+    font-family:var(--mono);
+    font-size:12px;
+    letter-spacing:0.18em;
+    text-transform:uppercase;
+    color:var(--route);
+    display:flex;
+    align-items:center;
+    gap:10px;
+    margin-bottom:22px;
+  }
+  .eyebrow .ver{
+    text-transform:none;
+  }
+  .eyebrow::before{
+    content:"";
+    width:22px; height:1px;
+    background:var(--route);
+    display:inline-block;
+  }
+
+  h1{
+    font-family:var(--display);
+    font-weight:800;
+    font-size:clamp(48px, 9vw, 96px);
+    line-height:0.92;
+    letter-spacing:-0.01em;
+    text-transform:uppercase;
+    color:var(--fog-100);
+  }
+  h1 span{color:var(--route);}
+
+  .hero p{
+    margin-top:20px;
+    max-width:520px;
+    color:var(--fog-500);
+    font-size:15.5px;
+  }
+
+  .hero-stats{
+    display:flex;
+    gap:32px;
+    margin-top:44px;
+    flex-wrap:wrap;
+  }
+  .hero-stat .n{
+    font-family:var(--display);
+    font-size:34px;
+    font-weight:700;
+    line-height:1;
+  }
+  .hero-stat .n.c1{color:var(--camp1);}
+  .hero-stat .n.c2{color:var(--camp2);}
+  .hero-stat .n.c3{color:var(--camp3);}
+  .hero-stat .l{
+    font-family:var(--mono);
+    font-size:11px;
+    letter-spacing:0.1em;
+    text-transform:uppercase;
+    color:var(--fog-500);
+    margin-top:6px;
+  }
+
+  /* ---------- ASCENT TRAIL ---------- */
+  .ascent{
+    position:relative;
+    padding-left:40px;
+  }
+
+  .trail-line{
+    position:absolute;
+    left:11px;
+    top:8px;
+    bottom:8px;
+    width:2px;
+    background:repeating-linear-gradient(
+      to bottom,
+      var(--stone-700) 0px, var(--stone-700) 6px,
+      transparent 6px, transparent 12px
+    );
+  }
+
+  .tier{
+    position:relative;
+    margin-bottom:76px;
+  }
+  .tier:last-child{margin-bottom:0;}
+
+  .tier-marker{
+    position:absolute;
+    left:-40px;
+    top:2px;
+    width:24px; height:24px;
+    border-radius:50%;
+    border:2px solid var(--stone-950);
+    display:flex; align-items:center; justify-content:center;
+  }
+  .tier-marker::after{
+    content:"";
+    width:9px; height:9px;
+    border-radius:50%;
+    background:currentColor;
+  }
+  .tier.easy .tier-marker{color:var(--camp1); background:var(--stone-950);}
+  .tier.medium .tier-marker{color:var(--camp2); background:var(--stone-950);}
+  .tier.hard .tier-marker{color:var(--camp3); background:var(--stone-950);}
+
+  .tier-head{
+    display:flex;
+    align-items:baseline;
+    gap:16px;
+    margin-bottom:6px;
+    flex-wrap:wrap;
+  }
+
+  .tier-title{
+    font-family:var(--display);
+    font-weight:700;
+    font-size:38px;
+    text-transform:uppercase;
+    letter-spacing:-0.01em;
+  }
+  .tier.easy .tier-title{color:var(--camp1);}
+  .tier.medium .tier-title{color:var(--camp2);}
+  .tier.hard .tier-title{color:var(--camp3);}
+
+  .tier-sub{
+    font-size:13.5px;
+    color:var(--fog-500);
+    max-width:560px;
+    margin-bottom:28px;
+  }
+
+  .cards{
+    display:grid;
+    grid-template-columns:repeat(3, 1fr);
+    gap:14px;
+  }
+  @media (max-width:820px){
+    .cards{grid-template-columns:1fr;}
+  }
+
+  .card{
+    background:var(--stone-850);
+    border:1px solid var(--stone-700);
+    border-radius:10px;
+    padding:18px 18px 16px;
+    position:relative;
+    transition:border-color .15s ease, transform .15s ease;
+  }
+  .card:hover{
+    transform:translateY(-2px);
+  }
+  .tier.easy .card:hover{border-color:var(--camp1);}
+  .tier.medium .card:hover{border-color:var(--camp2);}
+  .tier.hard .card:hover{border-color:var(--camp3);}
+
+  .card-head{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-start;
+    margin-bottom:14px;
+  }
+
+  .card-id{
+    font-family:var(--display);
+    font-size:22px;
+    font-weight:700;
+    letter-spacing:0.01em;
+    display:flex;
+    align-items:center;
+    gap:10px;
+  }
+
+  .tomb{
+    font-family:var(--mono);
+    font-size:10px;
+    letter-spacing:0.06em;
+    text-transform:uppercase;
+    padding:3px 8px;
+    border-radius:20px;
+    white-space:nowrap;
+  }
+  .tomb.open{color:var(--camp1); background:var(--camp1-dim); border:1px solid var(--camp1);}
+  .tomb.blocked{color:var(--camp3); background:var(--camp3-dim); border:1px solid var(--camp3);}
+  .tomb.na{color:var(--fog-500); background:var(--stone-800); border:1px solid var(--stone-700);}
+
+  .biome-list{
+    display:flex;
+    flex-direction:column;
+    gap:7px;
+  }
+
+  .biome-row{
+    display:flex;
+    align-items:baseline;
+    gap:8px;
+    font-size:13px;
+  }
+
+  .dot{
+    width:7px; height:7px;
+    border-radius:50%;
+    flex:none;
+    margin-bottom:1px;
+  }
+  .dot.shore{background:var(--shore);}
+  .dot.tropics{background:var(--tropics);}
+  .dot.roots{background:var(--roots);}
+  .dot.alpine{background:var(--alpine);}
+  .dot.mesa{background:var(--mesa);}
+  .dot.gloom{background:var(--other);}
+  .dot.citadel{background:var(--other);}
+
+  .biome-name{
+    font-family:var(--mono);
+    font-size:10.5px;
+    text-transform:uppercase;
+    letter-spacing:0.04em;
+    color:var(--fog-500);
+    width:56px;
+    flex:none;
+  }
+
+  .biome-mod{
+    color:var(--fog-100);
+  }
+  .biome-mod.hazard{color:var(--camp3); font-weight:600;}
+
+  /* ---------- REFERENCE TABLE ---------- */
+  .reference{
+    margin-top:120px;
+  }
+
+  .ref-head{
+    margin-bottom:36px;
+  }
+  .ref-head h2{
+    font-family:var(--display);
+    font-weight:800;
+    font-size:clamp(32px,5vw,44px);
+    text-transform:uppercase;
+    letter-spacing:-0.01em;
+  }
+  .ref-head p{
+    color:var(--fog-500);
+    font-size:14px;
+    margin-top:8px;
+    max-width:520px;
+  }
+
+  .ref-grid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:16px;
+  }
+  @media (max-width:700px){
+    .ref-grid{grid-template-columns:1fr;}
+  }
+
+  .ref-panel{
+    background:var(--stone-850);
+    border:1px solid var(--stone-700);
+    border-radius:10px;
+    overflow:hidden;
+  }
+
+  .ref-panel-head{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    padding:14px 18px;
+    border-bottom:1px solid var(--stone-700);
+  }
+  .ref-panel-head .dot{width:9px;height:9px;}
+  .ref-panel-head h3{
+    font-family:var(--mono);
+    font-size:12px;
+    letter-spacing:0.1em;
+    text-transform:uppercase;
+  }
+
+  .ref-panel table{
+    width:100%;
+    border-collapse:collapse;
+  }
+  .ref-panel td{
+    padding:11px 18px;
+    font-size:12.5px;
+    border-top:1px solid var(--stone-800);
+    vertical-align:top;
+  }
+  .ref-panel tr:first-child td{border-top:none;}
+  .ref-panel td.mod{
+    font-family:var(--mono);
+    color:var(--fog-100);
+    white-space:nowrap;
+    width:1%;
+    padding-right:16px;
+  }
+  .ref-panel td.desc{color:var(--fog-500);}
+
+  /* ---------- OVERVIEW TABLE ---------- */
+  .overview{
+    margin-top:120px;
+  }
+
+  .overview-panel{
+    background:var(--stone-850);
+    border:1px solid var(--stone-700);
+    border-radius:10px;
+    overflow-x:auto;
+  }
+
+  .overview table{
+    width:100%;
+    min-width:640px;
+    border-collapse:collapse;
+  }
+
+  .overview thead th{
+    text-align:left;
+    font-family:var(--mono);
+    font-size:10.5px;
+    letter-spacing:0.08em;
+    text-transform:uppercase;
+    color:var(--fog-500);
+    padding:14px 16px;
+    border-bottom:1px solid var(--stone-700);
+    white-space:nowrap;
+  }
+
+  .overview tbody td{
+    padding:13px 16px;
+    font-size:13px;
+    border-top:1px solid var(--stone-800);
+    white-space:nowrap;
+  }
+  .overview tbody tr:first-child td{border-top:none;}
+
+  .overview tbody tr:hover{background:var(--stone-800);}
+
+  .overview td.id-cell{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    font-family:var(--display);
+    font-weight:700;
+    font-size:16px;
+  }
+  .tier-dot{
+    width:8px; height:8px;
+    border-radius:50%;
+    flex:none;
+  }
+  .tier-dot.easy{background:var(--camp1);}
+  .tier-dot.medium{background:var(--camp2);}
+  .tier-dot.hard{background:var(--camp3);}
+
+  .overview td.hazard-cell{color:var(--camp3); font-weight:600;}
+  .overview td.dim-cell{color:var(--fog-500);}
+
+  .overview-legend{
+    display:flex;
+    gap:22px;
+    margin-top:16px;
+    flex-wrap:wrap;
+  }
+  .overview-legend span{
+    display:flex; align-items:center; gap:7px;
+    font-family:var(--mono);
+    font-size:11px;
+    letter-spacing:0.06em;
+    text-transform:uppercase;
+    color:var(--fog-500);
+  }
+
+  /* ---------- TOMB ACCESS ---------- */
+  .tomb-ref{
+    margin-top:100px;
+  }
+
+  .tomb-grid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:16px;
+  }
+  @media (max-width:700px){
+    .tomb-grid{grid-template-columns:1fr;}
+  }
+
+  .tomb-panel{
+    background:var(--stone-850);
+    border:1px solid var(--stone-700);
+    border-radius:10px;
+    padding:20px 22px;
+  }
+  .tomb-panel.open{border-color:var(--camp1);}
+  .tomb-panel.blocked{border-color:var(--camp3);}
+
+  .tomb-panel-head{
+    display:flex;
+    align-items:center;
+    gap:9px;
+    margin-bottom:16px;
+  }
+  .tomb-panel-head .dot{width:9px;height:9px;}
+  .tomb-panel.open .tomb-panel-head .dot{background:var(--camp1);}
+  .tomb-panel.blocked .tomb-panel-head .dot{background:var(--camp3);}
+
+  .tomb-panel-head h3{
+    font-family:var(--mono);
+    font-size:12px;
+    letter-spacing:0.1em;
+    text-transform:uppercase;
+  }
+  .tomb-panel.open h3{color:var(--camp1);}
+  .tomb-panel.blocked h3{color:var(--camp3);}
+
+  .tomb-chips{
+    display:flex;
+    flex-wrap:wrap;
+    gap:8px;
+  }
+  .tomb-chip{
+    font-family:var(--display);
+    font-weight:700;
+    font-size:14px;
+    padding:6px 12px;
+    border-radius:6px;
+    background:var(--stone-800);
+    border:1px solid var(--stone-700);
+  }
+
+  .map-link{
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    padding:4px 10px;
+    background:var(--stone-800);
+    border:1px solid var(--stone-700);
+    border-radius:4px;
+    font-size:11px;
+    font-family:var(--mono);
+    text-transform:uppercase;
+    letter-spacing:0.05em;
+    color:var(--fog-100);
+    text-decoration:none;
+    transition:all 0.2s ease;
+  }
+  .map-link:hover{
+    background:var(--stone-700);
+    border-color:var(--route);
+    color:var(--route);
+  }
+
+
+
+  .map-note{
+    font-family:var(--mono);
+    font-size:11.5px;
+    color:var(--fog-500);
+    margin-top:10px;
+    display:flex;
+    align-items:center;
+    gap:8px;
+  }
+  .map-note::before{
+    content:"❗";
+    color:var(--route);
+    font-size:13px;
+  }
+
+  footer{
+    margin-top:100px;
+    padding-top:24px;
+    border-top:1px solid var(--stone-800);
+    font-family:var(--mono);
+    font-size:11px;
+    color:var(--fog-500);
+    letter-spacing:0.04em;
+    display:flex;
+    justify-content:space-between;
+    flex-wrap:wrap;
+    gap:8px;
+  }
+
+  ::selection{background:var(--route-dim); color:var(--fog-100);}
+
+  :focus-visible{
+    outline:2px solid var(--route);
+    outline-offset:3px;
+  }
+
+  @media (prefers-reduced-motion:reduce){
+    *{transition:none !important; scroll-behavior:auto !important;}
+  }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <h1><span>Peak</span> your seed.</h1>
+</header>
+
+<div class="wrap">
+  <!-- SEEDS OVERVIEW TABLE -->
+  <section class="overview" id="overview">
+    <div class="ref-head">
+      <h2>Seeds Overview</h2>
+      <p>Every seed on the ladder, side by side.</p>
+    </div>
+
+    <div class="overview-panel">
+      <table>
+        <thead>
+          <tr>
+            <th>Level ID</th>
+            <th>Shore</th>
+            <th>Biome 2</th>
+            <th>Biome 3</th>
+            <th>Biome 4-5</th>
+            <th>Tomb Access</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="id-cell"><span class="tier-dot hard"></span>Level_0<a href="https://raw.githack.com/qWojtpl/PeakMap/0dac96d1e7d9e8a3ffab2c980c3b4fc0ac5ac735/WebApp/" target="_blank" class="map-link">Map</a></td>
+            <td>Blue Sand</td>
+            <td>Roots — Deep Woods</td>
+            <td class="hazard-cell">Mesa — Dynamite Hell</td>
+            <td>Gloom / Citadel</td>
+            <td>✅ Open</td>
+          </tr>
+          <tr>
+            <td class="id-cell"><span class="tier-dot medium"></span>Level_1<a href="https://raw.githack.com/qWojtpl/PeakMap/f96923e4a43eb177ccb176d663d4f596c0d26067/WebApp/" target="_blank" class="map-link">Map</a></td>
+            <td>Black Sand</td>
+            <td class="hazard-cell">Tropics — Bombs</td>
+            <td>Alpine</td>
+            <td>Gloom / Citadel</td>
+            <td class="dim-cell">—</td>
+          </tr>
+          <tr>
+            <td class="id-cell"><span class="tier-dot medium"></span>Level_2<a href="https://raw.githack.com/qWojtpl/PeakMap/7a23d827843eec67e1191026868bd1486b460e6f/WebApp/" target="_blank" class="map-link">Map</a></td>
+            <td>Blue Sand</td>
+            <td>Tropics — Sky Jungle</td>
+            <td>Mesa — Cactus Forest</td>
+            <td>Gloom / Citadel</td>
+            <td>✅ Open</td>
+          </tr>
+          <tr>
+            <td class="id-cell"><span class="tier-dot easy"></span>Level_3<a href="https://raw.githack.com/qWojtpl/PeakMap/24f53f087160f6ff17ae57ef52801b205b2be0a9/WebApp/" target="_blank" class="map-link">Map</a></td>
+            <td>Default</td>
+            <td>Roots</td>
+            <td>Mesa — Cactus Forest</td>
+            <td>Gloom / Citadel</td>
+            <td>✅ Open</td>
+          </tr>
+          <tr>
+            <td class="id-cell"><span class="tier-dot medium"></span>Level_4<a href="https://raw.githack.com/qWojtpl/PeakMap/c3d03292ae3db5ea8e359997b2edaea1c531f670/WebApp/" target="_blank" class="map-link">Map</a></td>
+            <td>Default</td>
+            <td>Tropics — Pillars</td>
+            <td class="hazard-cell">Alpine — Spiky</td>
+            <td>Gloom / Citadel</td>
+            <td class="dim-cell">—</td>
+          </tr>
+          <tr>
+            <td class="id-cell"><span class="tier-dot hard"></span>Level_5</td>
+            <td>Blue Sand</td>
+            <td>Tropics — Pillars</td>
+            <td class="hazard-cell">Mesa — Scorpion Hell</td>
+            <td>Gloom / Citadel</td>
+            <td>⛔ Blocked</td>
+          </tr>
+          <tr>
+            <td class="id-cell"><span class="tier-dot easy"></span>Level_6</td>
+            <td>Default</td>
+            <td>Roots — Cave Mania</td>
+            <td>Alpine</td>
+            <td>Gloom / Citadel</td>
+            <td class="dim-cell">—</td>
+          </tr>
+          <tr>
+            <td class="id-cell"><span class="tier-dot easy"></span>Level_7<a href="https://raw.githack.com/qWojtpl/PeakMap/3fa02448b351c1cb605cec176666566cd5d90f71/WebApp/" target="_blank" class="map-link">Map</a></td>
+            <td>Black Sand</td>
+            <td>Tropics — Ivy</td>
+            <td>Mesa</td>
+            <td>Gloom / Citadel</td>
+            <td>✅ Open</td>
+          </tr>
+          <tr>
+            <td class="id-cell"><span class="tier-dot hard"></span>Level_8<a href="https://raw.githack.com/qWojtpl/PeakMap/f37f3f9b75554310859026af77086ee034e99583/WebApp/" target="_blank" class="map-link">Map</a></td>
+            <td>Snake Beach</td>
+            <td>Roots — Deep Woods</td>
+            <td class="hazard-cell">Mesa — Scorpion Hell</td>
+            <td>Gloom / Citadel</td>
+            <td>⛔ Blocked</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="overview-legend">
+      <span><span class="tier-dot easy"></span>Base Camp</span>
+      <span><span class="tier-dot medium"></span>Switchback</span>
+      <span><span class="tier-dot hard"></span>Summit Push</span>
+    </div>
+
+    <p class="map-note">Not every level has a map — only levels that were part of the daily rotation got mapped, so some in-game levels have no map available.</p>
+  </section>
+
+
+  <!-- REFERENCE -->
+  <section class="reference" id="reference">
+    <div class="ref-head">
+      <h2>Modifier Glossary</h2>
+      <p>Every variant that can roll on each biome layer.</p>
+    </div>
+
+    <div class="ref-grid">
+      <div class="ref-panel">
+        <div class="ref-panel-head"><span class="dot shore"></span><h3>Shore</h3></div>
+        <table>
+          <tr><td class="mod">Snake Beach</td><td class="desc">Snake-like ground formations coming out from the ground</td></tr>
+          <tr><td class="mod">Jelly Hell</td><td class="desc">Increased jellyfish generation</td></tr>
+          <tr><td class="mod">Black Sand</td><td class="desc">Black colored beach with chains replacing bridges</td></tr>
+        </table>
+      </div>
+
+      <div class="ref-panel">
+        <div class="ref-panel-head"><span class="dot tropics"></span><h3>Tropics</h3></div>
+        <table>
+          <tr><td class="mod">Ivy</td><td class="desc">Purple colored tropics with increased poison flora generation</td></tr>
+          <tr><td class="mod">Lava</td><td class="desc">Lava waterfalls generation</td></tr>
+          <tr><td class="mod">Pillars</td><td class="desc">Pillar-like ground generation</td></tr>
+          <tr><td class="mod">Thorny</td><td class="desc">Increased thick vines generation, both spiky and spikeless</td></tr>
+          <tr><td class="mod">Bombs</td><td class="desc">Yellow colored tropics with increased yellow bombs generation</td></tr>
+          <tr><td class="mod">Sky Jungle</td><td class="desc">Floating islands generation</td></tr>
+        </table>
+      </div>
+
+      <div class="ref-panel">
+        <div class="ref-panel-head"><span class="dot roots"></span><h3>Roots</h3></div>
+        <table>
+          <tr><td class="mod">Deep Water</td><td class="desc">Lakes and waterfalls generation</td></tr>
+          <tr><td class="mod">Deep Woods</td><td class="desc">Increased trees generation</td></tr>
+          <tr><td class="mod">Cave Mania</td><td class="desc">Cave-like formations coming out from the ground</td></tr>
+          <tr><td class="mod">Clearcut</td><td class="desc">Bouncy mushrooms generation</td></tr>
+        </table>
+      </div>
+
+      <div class="ref-panel">
+        <div class="ref-panel-head"><span class="dot alpine"></span><h3>Alpine</h3></div>
+        <table>
+          <tr><td class="mod">Lava</td><td class="desc">Lava waterfalls generation</td></tr>
+          <tr><td class="mod">Spiky</td><td class="desc">Giant spikes generation</td></tr>
+          <tr><td class="mod">Geyser Hell</td><td class="desc">Increased geyser generation across all the map</td></tr>
+        </table>
+      </div>
+
+      <div class="ref-panel" style="grid-column: span 2;">
+        <div class="ref-panel-head"><span class="dot mesa"></span><h3>Mesa</h3></div>
+        <table>
+          <tr><td class="mod">Cactus Forest</td><td class="desc">Increased normal and giant cactus generation</td></tr>
+          <tr><td class="mod">Tumble Hell</td><td class="desc">Increased tumbleweed generation</td></tr>
+          <tr><td class="mod">Cactus Hell</td><td class="desc">Increased cactus balls generation</td></tr>
+          <tr><td class="mod">Scorpion Hell</td><td class="desc">Increased scorpion generation</td></tr>
+          <tr><td class="mod">Dynamite Hell</td><td class="desc">Increased dynamite generation</td></tr>
+        </table>
+      </div>
+    </div>
+  </section>
+
+
+  <div class="ref-head" style="margin-top:120px;">
+    <h2>Route Difficulty</h2>
+    <p>Nine seeds, sorted by how much the mountain wants to kill you. Ranked by hazard density across every biome layer, from shoreline to summit tomb.</p>
+  </div>
+
+  <div class="ascent">
+    <div class="trail-line"></div>
+
+    <!-- EASY -->
+    <section class="tier easy">
+      <div class="tier-marker"></div>
+      <div class="tier-head">
+        <h2 class="tier-title">Base Camp</h2>
+      </div>
+      <p class="tier-sub">Light modifier load, good for a warm-up run or a squad still learning the biomes.</p>
+
+      <div class="cards">
+        <div class="card">
+          <div class="card-head">
+            <div class="card-id">Level_3</div>
+            <span class="tomb open">Tomb Open</span>
+          </div>
+          <div class="biome-list">
+            <div class="biome-row"><span class="dot shore"></span><span class="biome-name">Shore</span></div>
+            <div class="biome-row"><span class="dot roots"></span><span class="biome-name">Roots</span></div>
+            <div class="biome-row"><span class="dot mesa"></span><span class="biome-name">Mesa</span><span class="biome-mod">Cactus Forest</span></div>
+            <div class="biome-row"><span class="dot gloom"></span><span class="biome-name">Gloom</span></div>
+            <div class="biome-row"><span class="dot citadel"></span><span class="biome-name">Citadel</span></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-head">
+            <div class="card-id">Level_6</div>
+          </div>
+          <div class="biome-list">
+            <div class="biome-row"><span class="dot shore"></span><span class="biome-name">Shore</span></div>
+            <div class="biome-row"><span class="dot roots"></span><span class="biome-name">Roots</span><span class="biome-mod">Cave Mania</span></div>
+            <div class="biome-row"><span class="dot alpine"></span><span class="biome-name">Alpine</span></div>
+            <div class="biome-row"><span class="dot gloom"></span><span class="biome-name">Gloom</span></div>
+            <div class="biome-row"><span class="dot citadel"></span><span class="biome-name">Citadel</span></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-head">
+            <div class="card-id">Level_7</div>
+            <span class="tomb open">Tomb Open</span>
+          </div>
+          <div class="biome-list">
+            <div class="biome-row"><span class="dot shore"></span><span class="biome-name">Shore</span><span class="biome-mod">Black Sand</span></div>
+            <div class="biome-row"><span class="dot tropics"></span><span class="biome-name">Tropics</span><span class="biome-mod">Ivy</span></div>
+            <div class="biome-row"><span class="dot mesa"></span><span class="biome-name">Mesa</span></div>
+            <div class="biome-row"><span class="dot gloom"></span><span class="biome-name">Gloom</span></div>
+            <div class="biome-row"><span class="dot citadel"></span><span class="biome-name">Citadel</span></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- MEDIUM -->
+    <section class="tier medium">
+      <div class="tier-marker"></div>
+      <div class="tier-head">
+        <h2 class="tier-title">Switchback</h2>
+      </div>
+      <p class="tier-sub">One real hazard per run. Expect a slower, more careful climb.</p>
+
+      <div class="cards">
+        <div class="card">
+          <div class="card-head">
+            <div class="card-id">Level_1</div>
+          </div>
+          <div class="biome-list">
+            <div class="biome-row"><span class="dot shore"></span><span class="biome-name">Shore</span><span class="biome-mod">Black Sand</span></div>
+            <div class="biome-row"><span class="dot tropics"></span><span class="biome-name">Tropics</span><span class="biome-mod hazard">Bombs</span></div>
+            <div class="biome-row"><span class="dot alpine"></span><span class="biome-name">Alpine</span></div>
+            <div class="biome-row"><span class="dot gloom"></span><span class="biome-name">Gloom</span></div>
+            <div class="biome-row"><span class="dot citadel"></span><span class="biome-name">Citadel</span></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-head">
+            <div class="card-id">Level_2</div>
+            <span class="tomb open">Tomb Open</span>
+          </div>
+          <div class="biome-list">
+            <div class="biome-row"><span class="dot shore"></span><span class="biome-name">Shore</span><span class="biome-mod">Blue Sand</span></div>
+            <div class="biome-row"><span class="dot tropics"></span><span class="biome-name">Tropics</span><span class="biome-mod">Sky Jungle</span></div>
+            <div class="biome-row"><span class="dot mesa"></span><span class="biome-name">Mesa</span><span class="biome-mod">Cactus Forest</span></div>
+            <div class="biome-row"><span class="dot gloom"></span><span class="biome-name">Gloom</span></div>
+            <div class="biome-row"><span class="dot citadel"></span><span class="biome-name">Citadel</span></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-head">
+            <div class="card-id">Level_4</div>
+          </div>
+          <div class="biome-list">
+            <div class="biome-row"><span class="dot shore"></span><span class="biome-name">Shore</span></div>
+            <div class="biome-row"><span class="dot tropics"></span><span class="biome-name">Tropics</span><span class="biome-mod">Pillars</span></div>
+            <div class="biome-row"><span class="dot alpine"></span><span class="biome-name">Alpine</span><span class="biome-mod hazard">Spiky</span></div>
+            <div class="biome-row"><span class="dot gloom"></span><span class="biome-name">Gloom</span></div>
+            <div class="biome-row"><span class="dot citadel"></span><span class="biome-name">Citadel</span></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- HARD -->
+    <section class="tier hard">
+      <div class="tier-marker"></div>
+      <div class="tier-head">
+        <h2 class="tier-title">Summit Push</h2>
+      </div>
+      <p class="tier-sub">"Hell"-tier hazards. No shortcuts, just the climb. Good luck.</p>
+
+      <div class="cards">
+        <div class="card">
+          <div class="card-head">
+            <div class="card-id">Level_0</div>
+            <span class="tomb open">Tomb Open</span>
+          </div>
+          <div class="biome-list">
+            <div class="biome-row"><span class="dot shore"></span><span class="biome-name">Shore</span><span class="biome-mod">Blue Sand</span></div>
+            <div class="biome-row"><span class="dot roots"></span><span class="biome-name">Roots</span><span class="biome-mod">Deep Woods</span></div>
+            <div class="biome-row"><span class="dot mesa"></span><span class="biome-name">Mesa</span><span class="biome-mod hazard">Dynamite Hell</span></div>
+            <div class="biome-row"><span class="dot gloom"></span><span class="biome-name">Gloom</span></div>
+            <div class="biome-row"><span class="dot citadel"></span><span class="biome-name">Citadel</span></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-head">
+            <div class="card-id">Level_5</div>
+            <span class="tomb blocked">Tomb Blocked</span>
+          </div>
+          <div class="biome-list">
+            <div class="biome-row"><span class="dot shore"></span><span class="biome-name">Shore</span><span class="biome-mod">Blue Sand</span></div>
+            <div class="biome-row"><span class="dot tropics"></span><span class="biome-name">Tropics</span><span class="biome-mod">Pillars</span></div>
+            <div class="biome-row"><span class="dot mesa"></span><span class="biome-name">Mesa</span><span class="biome-mod hazard">Scorpion Hell</span></div>
+            <div class="biome-row"><span class="dot gloom"></span><span class="biome-name">Gloom</span></div>
+            <div class="biome-row"><span class="dot citadel"></span><span class="biome-name">Citadel</span></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-head">
+            <div class="card-id">Level_8</div>
+            <span class="tomb blocked">Tomb Blocked</span>
+          </div>
+          <div class="biome-list">
+            <div class="biome-row"><span class="dot shore"></span><span class="biome-name">Shore</span><span class="biome-mod">Snake Beach</span></div>
+            <div class="biome-row"><span class="dot roots"></span><span class="biome-name">Roots</span><span class="biome-mod">Deep Woods</span></div>
+            <div class="biome-row"><span class="dot mesa"></span><span class="biome-name">Mesa</span><span class="biome-mod hazard">Scorpion Hell</span></div>
+            <div class="biome-row"><span class="dot gloom"></span><span class="biome-name">Gloom</span></div>
+            <div class="biome-row"><span class="dot citadel"></span><span class="biome-name">Citadel</span></div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- TOMB ACCESS REFERENCE -->
+  <section class="tomb-ref" id="tomb-access" style="margin-top:120px;">
+    <div class="ref-head">
+      <h2>Tomb Access Reference</h2>
+      <p>Whether the Mesa tomb is reachable, at a glance.</p>
+    </div>
+
+    <div class="tomb-grid">
+      <div class="tomb-panel open">
+        <div class="tomb-panel-head"><span class="dot"></span><h3>Open</h3></div>
+        <div class="tomb-chips">
+          <span class="tomb-chip">Level_0</span>
+          <span class="tomb-chip">Level_2</span>
+          <span class="tomb-chip">Level_3</span>
+          <span class="tomb-chip">Level_7</span>
+        </div>
+      </div>
+      <div class="tomb-panel blocked">
+        <div class="tomb-panel-head"><span class="dot"></span><h3>Blocked</h3></div>
+        <div class="tomb-chips">
+          <span class="tomb-chip">Level_5</span>
+          <span class="tomb-chip">Level_8</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <span>v2.02.a</span>
+    <a href="v2.01.a.html" class="map-link">Switch to v2.01.a</a>
+  </footer>
+</div>
+
+</body>
+</html>
